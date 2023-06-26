@@ -35,8 +35,8 @@ In case you are using a max485 board without automatic flow control, one additio
 
 ## ESP-Home
 1. Create a new ESPHome device in homeassistant
-2. Copy the esphome config snipped below the header. I left the captive_portal directive in the snippet. Make sure it's only there once.
-3. Fllash the board
+2. Copy the esphome config snippet below the header. I left the captive_portal directive in the snippet for reference. Make sure it's only there once.
+3. Flash the board
 
 ## Connecting to heatpump
 Connect everything to the header in the center of the image marked B A G +12V. The existing cable channels are quite handy to feed the cable out at the back of the unit. I have included a very simple (temporary) housing for the electronics which I clip on to one of the 50mm water pipes. 
