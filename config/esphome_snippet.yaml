@@ -1,3 +1,10 @@
+####
+## Create a new ESP-Home Device and paste the snippet below into the newly created config. 
+## make sure, captive portal is only in the file once (if you want to keep it in the first place)
+####
+
+
+
 captive_portal:
 
 web_server:
