@@ -1,0 +1,108 @@
+  - title: Heater
+    path: heater
+    icon: mdi:heat-pump
+    badges: []
+    cards:
+      - type: vertical-stack
+        cards:
+          - type: horizontal-stack
+            cards:
+              - show_name: true
+                show_icon: true
+                type: button
+                tap_action:
+                  action: toggle
+                entity: switch.pool_wp_pwp_power_switch
+                name: Power
+              - type: custom:mushroom-select-card
+                entity: select.pool_wp_pwp_operating_mode
+                icon: mdi:waves
+                name: Mode
+              - type: custom:mushroom-select-card
+                entity: select.pool_wp_pwp_power_mode
+                name: Program
+                icon: mdi:power-settings
+          - type: custom:auto-entities
+            show_empty: false
+            card:
+              show_name: true
+              show_icon: true
+              show_state: false
+              title: Warning and Errors
+              type: glance
+              state_color: true
+            filter:
+              include:
+                - entity_id: '*pwp_error*'
+                  state: 'on'
+                - entity_id: '*pwp_warning*'
+                  state: 'on'
+              exclude: null
+            sort:
+              method: state
+              reverse: true
+          - type: conditional
+            conditions:
+              - entity: select.pool_wp_pwp_operating_mode
+                state: Heating
+            card:
+              type: custom:mushroom-number-card
+              entity: number.pool_wp_pwp_target_temperature_heating
+              name: Target Heating
+              icon: mdi:sun-thermometer
+              icon_color: red
+          - type: conditional
+            conditions:
+              - entity: select.pool_wp_pwp_operating_mode
+                state: Auto
+            card:
+              type: custom:mushroom-number-card
+              entity: number.pool_wp_pwp_target_temperature_auto
+              name: Target Auto
+              icon: mdi:thermometer-auto
+              icon_color: blue-grey
+          - type: conditional
+            conditions:
+              - entity: select.pool_wp_pwp_operating_mode
+                state: Cooling
+            card:
+              type: custom:mushroom-number-card
+              entity: number.pool_wp_pwp_target_temperature_cooling
+              icon: mdi:snowflake-thermometer
+              name: Target Cooling
+              icon_color: blue
+          - type: horizontal-stack
+            cards:
+              - type: custom:mushroom-entity-card
+                entity: sensor.pool_wp_pwp_inlet_water_temperature
+                name: Inlet
+              - type: custom:mushroom-entity-card
+                entity: sensor.pool_wp_pwp_outlet_water_temperature
+                name: Outlet
+                icon_color: red
+          - type: horizontal-stack
+            cards:
+              - type: custom:mushroom-entity-card
+                entity: sensor.pool_wp_pwp_speed_percentage
+                name: Speed
+                icon: mdi:fan
+              # The below is a derivative helper sensor which I have set up with a temp sensor integrated into my piping. 
+              # The sensor is provided by another esphome device
+              # You could set this up with the water inlet temperature...
+              - type: custom:mushroom-entity-card
+                entity: sensor.pool_temperature_change
+                name: Change
+                fill_container: false
+      - type: custom:mushroom-title-card
+        title: Diagnostics
+      - type: horizontal-stack
+        cards:
+          - type: custom:mushroom-entity-card
+            entity: sensor.pool_wp_pwp_compressor_current
+            name: Compressor Current
+          - type: custom:mushroom-entity-card
+            entity: sensor.pool_wp_pwp_compressor_running_frequency
+            name: Compressor Frequency
+          - type: custom:mushroom-entity-card
+            entity: sensor.pool_wp_pwp_compressor_power
+            name: Compressor Power
