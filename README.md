@@ -53,3 +53,9 @@ I have added a code snippet you can incorporate in your dashboard.
 ![](images/6%20dashboard.png)
 
 
+### Known issues
+- The modbus configuration still throws a few warnings related to duplicate entries. It seems to work well despite these warnings though.
+- The selected heating/cooling mode (slient, normal, ...) is not remembered properly. The heatpumpt often switches to silent when it's powered on even though normal was selected before.
+- The case is to be considered rather preliminary. I just wanted something to get it to work. 
+
+
