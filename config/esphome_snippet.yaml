@@ -1,0 +1,733 @@
+captive_portal:
+
+web_server:
+  port: 80
+
+
+uart:
+  id: mod_bus
+  rx_pin: RX
+  tx_pin: TX
+  baud_rate: 9600
+  
+modbus:
+#  flow_control_pin: GPIO4
+  id: modbus1
+
+modbus_controller:
+  - id: fairland
+    ## the Modbus device addr
+    address: 0x0001
+    modbus_id: modbus1
+    update_interval: 2s
+
+###################################################
+# Elements with Modbus Operation read 01 / write 05
+# coil
+###################################################
+# 0	Power
+# 1	compulsory defrosting
+# 2～47	reserve
+###################################################
+
+switch:
+  - platform: modbus_controller
+    modbus_controller_id: fairland
+    name: "PWP Power Switch"
+    id: pwp_power_switch
+    register_type: coil
+    address: 0x0
+    # unit_of_measurement: "State"
+
+
+
+###################################################
+# Elements with Modbus Operation read 03 / write 06
+# holding
+###################################################
+# address content	Range	Unit	Step length	Defaut	Illustration
+# 0	mode selectioin 1	0～2				0：Auto，1：Heating，2：Cooling
+# 1	mode selectioin 2	0～3		1	1	0：Normal，1：silence，2：Super silence, 3: Turbo
+# 2	Temp setting under Auto mode	18~35	℃	1	25	
+# 3	Temp setting under heating mode					
+# 4	Temp setting under cooling mode	30~95	%	1	50	
+# 5	Running mode of water pump	0~2		1	0	"0：Continuation 
+# 1：Water temp control
+# 2：time/water temp control
+# "
+# 6	Time setting of water pump (When under running mode 2)	10 ~ 120 	min	5	60	
+# 7	The compressor runs continuously before defrosting enters	20~90	min	1	20	
+# 8	Defrosting start temp	-10~10	℃	1	-1	
+# 9	Defrosting running time	1~12	min	1	8	
+# 10	Defrosting quit temp	0~30	℃	1	8	
+# 11	Fixed speed mode selection					
+# 12	reserve					
+# 13	reserve					
+# 14	Low temperature shutdown protection correction amount					
+# 12	reserve					
+# 13	reserve					
+# 17	Electronic expansion valve overheat level（heating）	-10~20	℃	1	3	
+# 18	Electronic expansion valve overheat level（cooling）	-10~20	℃	1	3	
+# 19	Electronic expansion valve manual/auto	0~1		1	0	0：auto，1：Manual
+# 20	Electronic expansion valve openning setting（heating）	50~240		2	100	
+# 21	Electronic expansion valve openning setting（cooling）	50~240		2	100	
+# 22	The medium frequency ratio selection					
+# 23	reserve					
+# 24	reserve					
+# 25	Power off memory function	0~1		1	1	0: None;  1: Yes  
+# 26	reserve					
+# 27	reserve					
+# 28	reserve					
+# 29	reserve					
+# 30	reserve					
+# 31	reserve					
+# 32	reserve					
+###################################################
+
+select:
+  - platform: modbus_controller
+    name: "PWP Operating Mode"
+    id: pwp_operating_mode
+    modbus_controller_id: fairland
+    address: 0x0
+    value_type: U_WORD
+    optionsmap: 
+      "Auto": 0
+      "Heating": 1
+      "Cooling": 2
+    
+  - platform: modbus_controller
+    name: "PWP Power Mode"
+    id: pwp_power_mode
+    modbus_controller_id: fairland
+    address: 0x1
+    value_type: U_WORD
+    optionsmap: 
+      "Super Silence": 2
+      "Silence": 1
+      "Normal": 0
+      "Turbo": 3
+
+# Temperature Formula
+# ((value - 96) / 2) + 18
+
+number:
+  - platform: modbus_controller
+    modbus_controller_id: fairland
+    name: "PWP Target Temperature Heating"
+    id: pwp_target_temperature_heating
+    address: 0x3
+    value_type: U_WORD
+    unit_of_measurement: "°C"
+    min_value: 18
+    max_value: 32
+    lambda: "return (x-96) / 2 + 18;"
+    write_lambda: |- 
+      ESP_LOGD("main", "Modbus Number incoming value = %f", x);
+      return ((x-18) * 2 + 96) * 1.0;
+
+  - platform: modbus_controller
+    modbus_controller_id: fairland
+    name: "PWP Target Temperature Auto"
+    id: pwp_target_temperature_auto
+    register_type: holding
+    address: 0x2
+    value_type: U_WORD
+    unit_of_measurement: "°C"
+    min_value: 18
+    max_value: 32
+    lambda: "return (x-96) / 2 + 18;"
+    write_lambda: |- 
+      ESP_LOGD("main", "Modbus Number incoming value = %f", x);
+      return ((x-18) * 2 + 96) * 1.0;
+
+  - platform: modbus_controller
+    modbus_controller_id: fairland
+    name: "PWP Target Temperature Cooling"
+    id: pwp_target_temperature_cooling
+    register_type: holding
+    address: 0x4
+    value_type: U_WORD
+    unit_of_measurement: "°C"
+    min_value: 18
+    max_value: 32
+    lambda: "return (x-96) / 2 + 18;"
+    write_lambda: |- 
+      ESP_LOGD("main", "Modbus Number incoming value = %f", x);
+      return ((x-18) * 2 + 96) * 1.0;
+
+
+
+
+###################################################
+# Elements with Modbus Operation read 04 / write NA
+# read
+###################################################
+# 0	Percentage of speed					
+# 1	Target frequency of compressor					
+# 2	Voltage of PFC					
+# 3	Inlet water temp					
+# 4	Outlet water temp					
+# 5	Ambient air temp					
+# 6	Dircharge temp					
+# 7	Outer coil pipe temp					
+# 8	Suction temp					
+# 9	Inner coil pipe tem 					
+# 10	Running frequency of compressor					
+# 11	Current of compressor					
+# 12	Cooling plate temp					
+# 13	Electronic expansion valve opening					
+# 14	DC fan speed					
+# 15	Lower limit of setting temp of auto mode					
+# 16	Upper limit of setting temp of auto mode					
+# 17	Lower limit of setting temp of heating mode					
+# 18	Upper limit of setting temp of heating mode					
+# 19	Lower limit of setting temp of cooling mode					
+# 20	Upper limit of setting temp of cooling mode					
+# 21	Motherboard version code1					ASCII code
+# 22	Motherboard version code2					ASCII code
+# 23	Motherboard version code3					ASCII code
+# 24	Motherboard version code4					ASCII code
+# 25	Motherboard version code5					ASCII code
+# 26	Model code1					ASCII code
+# 27	Model code2 ('C'is heating and cooling version，‘H’is heating version)					ASCII code
+# 28	Model code3					ASCII code
+# 29	Model code4					ASCII code
+# 30	Voltage of power supply		V	1		
+# 31	The remaining time of Compressor shutdown protection 		S	1		
+# 32	reserve					
+###################################################
+
+sensor:
+
+  - platform: modbus_controller
+    modbus_controller_id: fairland
+    name: "PWP Speed Percentage"
+    id: pwp_speed_percentage
+    register_type: read
+    address: 0x0
+    value_type: U_WORD
+    unit_of_measurement: "%"
+    
+  - platform: modbus_controller
+    modbus_controller_id: fairland
+    name: "PWP Inlet water Temperature"
+    id: pwp_inlet_water_temperature
+    register_type: read
+    address: 0x3
+    value_type: U_WORD
+    unit_of_measurement: "°C"
+    filters:
+      - offset: -96
+      - multiply: 0.5
+      - offset: 18
+
+  - platform: modbus_controller
+    modbus_controller_id: fairland
+    name: "PWP Outlet water Temperature"
+    id: pwp_outlet_water_temperature
+    register_type: read
+    address: 0x4
+    value_type: U_WORD
+    unit_of_measurement: "°C"
+    filters:
+      - offset: -96
+      - multiply: 0.5
+      - offset: 18
+
+  - platform: modbus_controller
+    modbus_controller_id: fairland
+    name: "PWP Ambient Air Temperature"
+    id: pwp_ambient_air_temperature
+    register_type: read
+    address: 0x4
+    value_type: U_WORD
+    unit_of_measurement: "°C"
+    filters:
+      - offset: -96
+      - multiply: 0.5
+      - offset: 18
+
+  - platform: modbus_controller
+    modbus_controller_id: fairland
+    name: "PWP Compressor Current"
+    id: pwp_compressor_current
+    register_type: read
+    address: 11
+    value_type: U_WORD
+    unit_of_measurement: "A"
+    filters:
+      - multiply: 0.1
+
+  - platform: modbus_controller
+    modbus_controller_id: fairland
+    name: "PWP Compressor Running Frequency"
+    id: pwp_compressor_running_frequency
+    register_type: read
+    address: 10
+    value_type: U_WORD
+    unit_of_measurement: "Hz"
+
+  - platform: template
+    name: "PWP Compressor Power"
+    id: pwp_compressor_power
+    unit_of_measurement: "W"
+    lambda: |-
+          if (id(pwp_compressor_current).state) {
+            return id(pwp_compressor_current).state * 230;
+          } else {
+            return 0.0;
+          }
+    update_interval: 1s
+
+###################################################
+# Elements with Modbus Operation read 02 / write NA
+# discrete_input
+###################################################
+# 0	Switch on/off
+# 1	Defrosting
+# 2	Temperature adjustment
+# 3	Silence
+# 4	Anti-freeze
+# 5	Cooling mode selection
+# 6	Remote controll
+# 7	Water flow swtich
+# 8	High pressure swtich
+# 9	Low pressure swtich
+# 10	Compressor
+# 11	Outdorr fan motor
+# 12	4-Way valve
+# 13	Bypass valve
+# 14	reserve
+# 15	Heating element in the basis
+# 16	reserve
+# 17	Circulation pump
+# 17～47	reserve
+# 48	E0
+# 49	E1
+# 50	E2
+# 51	E3
+# 52	E4
+# 53	E5
+# 54	E6
+# 55	E7
+# 56	E8
+# 57	E9
+# 58	EA
+# 59	EB
+# 60	EC
+# 61	ED
+# 62	EE
+# 63	EF
+# 64	P0
+# 65	P1
+# 66	P2
+# 67	P3
+# 68	P4
+# 69	P5
+# 70	P6
+# 71	P7
+# 72	P8
+# 73	P9
+# 74	PA
+# 75	PB
+# 76	PC
+# 77	PD
+# 78	PE
+# 79	PF
+# 80	F0
+# 81	F1
+# 82	F2
+# 83	F3
+# 84	F4
+# 85	F5
+# 86	F6
+# 87	F7
+# 88	F8
+# 89	F9
+# 90	FA
+# 91	FB
+# 92	FC
+# 93	FD
+# 94	FE
+# 95	FF
+###################################################
+binary_sensor:
+  - platform: modbus_controller
+    modbus_controller_id: fairland
+    name: "PWP Error E0"
+    id: pwp_error_E0
+    register_type: discrete_input
+    address: 48
+    device_class: PROBLEM
+
+  - platform: modbus_controller
+    modbus_controller_id: fairland
+    name: "PWP Error E1 - High Pressure Protection"
+    id: pwp_error_E1
+    register_type: discrete_input
+    address: 49
+    device_class: PROBLEM
+
+  - platform: modbus_controller
+    modbus_controller_id: fairland
+    name: "PWP Error E2 Low Pressure Protection"
+    id: pwp_error_E2
+    register_type: discrete_input
+    address: 50
+    device_class: PROBLEM
+
+  - platform: modbus_controller
+    modbus_controller_id: fairland
+    name: "PWP Warning E3 No Water Protection"
+    id: pwp_error_E3
+    register_type: discrete_input
+    address: 51
+    device_class: PROBLEM
+
+  - platform: modbus_controller
+    modbus_controller_id: fairland
+    name: "PWP Error E4 3 phase sequence protection"
+    id: pwp_error_E4
+    register_type: discrete_input
+    address: 52
+    device_class: PROBLEM
+
+  - platform: modbus_controller
+    modbus_controller_id: fairland
+    name: "PWP Warning E5 Power Supply Excesses Operation Range"
+    id: pwp_error_E5
+    register_type: discrete_input
+    address: 53
+    device_class: PROBLEM
+
+  - platform: modbus_controller
+    modbus_controller_id: fairland
+    name: "PWP Warning E6 Insufficient Water Flow"
+    id: pwp_error_E6
+    register_type: discrete_input
+    address: 54
+    device_class: PROBLEM
+
+  - platform: modbus_controller
+    modbus_controller_id: fairland
+    name: "PWP Error E7 Water Outlet Temp too high or too low"
+    id: pwp_error_E7
+    register_type: discrete_input
+    address: 55
+    device_class: PROBLEM
+
+  - platform: modbus_controller
+    modbus_controller_id: fairland
+    name: "PWP Error E8 High Exhaust Temp Protection"
+    id: pwp_error_E8
+    register_type: discrete_input
+    address: 56
+    device_class: PROBLEM
+
+  - platform: modbus_controller
+    modbus_controller_id: fairland
+    name: "PWP Error E9"
+    id: pwp_error_E9
+    register_type: discrete_input
+    address: 57
+    device_class: PROBLEM
+
+  - platform: modbus_controller
+    modbus_controller_id: fairland
+    name: "PWP Error EA Evaporator overheat protection"
+    id: pwp_error_EA
+    register_type: discrete_input
+    address: 58
+    device_class: PROBLEM
+
+  - platform: modbus_controller
+    modbus_controller_id: fairland
+    name: "PWP Warning EB Ambient Temperature too high or too low"
+    id: pwp_error_EB
+    register_type: discrete_input
+    address: 59
+    device_class: PROBLEM
+
+  - platform: modbus_controller
+    modbus_controller_id: fairland
+    name: "PWP Error EC"
+    id: pwp_error_EC
+    register_type: discrete_input
+    address: 60
+    device_class: PROBLEM
+
+  - platform: modbus_controller
+    modbus_controller_id: fairland
+    name: "PWP Warning  ED Anti-Freezing Reminder"
+    id: pwp_error_ED
+    register_type: discrete_input
+    address: 61
+    device_class: PROBLEM
+
+  - platform: modbus_controller
+    modbus_controller_id: fairland
+    name: "PWP Error EF"
+    id: pwp_error_EF
+    register_type: discrete_input
+    address: 62
+    device_class: PROBLEM
+
+  - platform: modbus_controller
+    modbus_controller_id: fairland
+    name: "PWP Error P0 Controller Communication Failure"
+    id: pwp_error_P0
+    register_type: discrete_input
+    address: 64
+    device_class: PROBLEM
+
+  - platform: modbus_controller
+    modbus_controller_id: fairland
+    name: "PWP Error P1 Water Inlet Temp Sensor Failure"
+    id: pwp_error_P1
+    register_type: discrete_input
+    address: 65
+    device_class: PROBLEM
+
+  - platform: modbus_controller
+    modbus_controller_id: fairland
+    name: "PWP Error P2 Water Outlet Temp Sensor Failure"
+    id: pwp_error_P2
+    register_type: discrete_input
+    address: 66
+    device_class: PROBLEM
+
+  - platform: modbus_controller
+    modbus_controller_id: fairland
+    name: "PWP Error P3 Gas Exhaust Temp Sensor Failure"
+    id: pwp_error_P3
+    register_type: discrete_input
+    address: 67
+    device_class: PROBLEM
+
+  - platform: modbus_controller
+    modbus_controller_id: fairland
+    name: "PWP Error P4 Evaporator Coil Pipe Temp Sensor Failure"
+    id: pwp_error_P4
+    register_type: discrete_input
+    address: 68
+    device_class: PROBLEM
+
+  - platform: modbus_controller
+    modbus_controller_id: fairland
+    name: "PWP Error P5 Gas Return Temp Sensor Failure"
+    id: pwp_error_P5
+    register_type: discrete_input
+    address: 69
+    device_class: PROBLEM
+
+  - platform: modbus_controller
+    modbus_controller_id: fairland
+    name: "PWP Error P6 Cooling Coil Pipe Temp Sensor Failure"
+    id: pwp_error_P6
+    register_type: discrete_input
+    address: 70
+    device_class: PROBLEM
+
+  - platform: modbus_controller
+    modbus_controller_id: fairland
+    name: "PWP Error P7 Ambient Temp Sensor Failure"
+    id: pwp_error_P7
+    register_type: discrete_input
+    address: 71
+    device_class: PROBLEM
+
+  - platform: modbus_controller
+    modbus_controller_id: fairland
+    name: "PWP Error P8 Cooling Plate Sensor Failiure"
+    id: pwp_error_P8
+    register_type: discrete_input
+    address: 72
+    device_class: PROBLEM
+
+  - platform: modbus_controller
+    modbus_controller_id: fairland
+    name: "PWP Error P9 Current Sensor Failure"
+    id: pwp_error_P9
+    register_type: discrete_input
+    address: 73
+    device_class: PROBLEM
+
+  - platform: modbus_controller
+    modbus_controller_id: fairland
+    name: "PWP Error PA Restart Memory Failure"
+    id: pwp_error_PA
+    register_type: discrete_input
+    address: 74
+    device_class: PROBLEM
+
+  - platform: modbus_controller
+    modbus_controller_id: fairland
+    name: "PWP Error PB"
+    id: pwp_error_PB
+    register_type: discrete_input
+    address: 75
+    device_class: PROBLEM
+
+  - platform: modbus_controller
+    modbus_controller_id: fairland
+    name: "PWP Error PC"
+    id: pwp_error_PC
+    register_type: discrete_input
+    address: 76
+    device_class: PROBLEM
+
+  - platform: modbus_controller
+    modbus_controller_id: fairland
+    name: "PWP Error PD"
+    id: pwp_error_PD
+    register_type: discrete_input
+    address: 77
+    device_class: PROBLEM
+
+  - platform: modbus_controller
+    modbus_controller_id: fairland
+    name: "PWP Error PE"
+    id: pwp_error_PE
+    register_type: discrete_input
+    address: 78
+    device_class: PROBLEM
+
+  - platform: modbus_controller
+    modbus_controller_id: fairland
+    name: "PWP Error PF"
+    id: pwp_error_PF
+    register_type: discrete_input
+    address: 79
+    device_class: PROBLEM
+
+  - platform: modbus_controller
+    modbus_controller_id: fairland
+    name: "PWP Error F0"
+    id: pwp_error_F0
+    register_type: discrete_input
+    address: 80
+    device_class: PROBLEM
+
+  - platform: modbus_controller
+    modbus_controller_id: fairland
+    name: "PWP Error F1 Compressor Drive Module Failure"
+    id: pwp_error_F1
+    register_type: discrete_input
+    address: 81
+    device_class: PROBLEM
+
+  - platform: modbus_controller
+    modbus_controller_id: fairland
+    name: "PWP Error F2 PFC Module Failure"
+    id: pwp_error_F2
+    register_type: discrete_input
+    address: 82
+    device_class: PROBLEM
+
+  - platform: modbus_controller
+    modbus_controller_id: fairland
+    name: "PWP Error F3 Compressor Start Failure"
+    id: pwp_error_F3
+    register_type: discrete_input
+    address: 83
+    device_class: PROBLEM
+
+  - platform: modbus_controller
+    modbus_controller_id: fairland
+    name: "PWP Error F4 Compressor Running Failure"
+    id: pwp_error_F4
+    register_type: discrete_input
+    address: 84
+    device_class: PROBLEM
+
+  - platform: modbus_controller
+    modbus_controller_id: fairland
+    name: "PWP Error F5 Inverter Board Over Current Protection"
+    id: pwp_error_F5
+    register_type: discrete_input
+    address: 85
+    device_class: PROBLEM
+
+  - platform: modbus_controller
+    modbus_controller_id: fairland
+    name: "PWP Error F6 Inverter Board Over Temperature Protection"
+    id: pwp_error_F6
+    register_type: discrete_input
+    address: 86
+    device_class: PROBLEM
+
+  - platform: modbus_controller
+    modbus_controller_id: fairland
+    name: "PWP Error F7 Current Protection"
+    id: pwp_error_F7
+    register_type: discrete_input
+    address: 87
+    device_class: PROBLEM
+
+  - platform: modbus_controller
+    modbus_controller_id: fairland
+    name: "PWP Error F8 Cooling Plate Overheat Protection"
+    id: pwp_error_F8
+    register_type: discrete_input
+    address: 88
+    device_class: PROBLEM
+
+  - platform: modbus_controller
+    modbus_controller_id: fairland
+    name: "PWP Error F9 Fan Motor Failure"
+    id: pwp_error_F9
+    register_type: discrete_input
+    address: 89
+    device_class: PROBLEM
+
+  - platform: modbus_controller
+    modbus_controller_id: fairland
+    name: "PWP Error FA PFC Module Over Current Protection"
+    id: pwp_error_FA
+    register_type: discrete_input
+    address: 90
+    device_class: PROBLEM
+
+  - platform: modbus_controller
+    modbus_controller_id: fairland
+    name: "PWP Error FB Power Filter Plate No-Power Protection"
+    id: pwp_error_FB
+    register_type: discrete_input
+    address: 91
+    device_class: PROBLEM
+
+  - platform: modbus_controller
+    modbus_controller_id: fairland
+    name: "PWP Error FC"
+    id: pwp_error_FC
+    register_type: discrete_input
+    address: 92
+    device_class: PROBLEM
+
+  - platform: modbus_controller
+    modbus_controller_id: fairland
+    name: "PWP Error FD"
+    id: pwp_error_FD
+    register_type: discrete_input
+    address: 93
+    device_class: PROBLEM
+
+  - platform: modbus_controller
+    modbus_controller_id: fairland
+    name: "PWP Error FE"
+    id: pwp_error_FE
+    register_type: discrete_input
+    address: 94
+    device_class: PROBLEM
+
+  - platform: modbus_controller
+    modbus_controller_id: fairland
+    name: "PWP Error FF"
+    id: pwp_error_FF
+    register_type: discrete_input
+    address: 95
+    device_class: PROBLEM
+
+
+  
