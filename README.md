@@ -26,6 +26,8 @@ Everything I describe here is at quality level "works for me". Follow these inst
 - A on max485 board to A on control board
 - B on max485 board to B on control board
 
+If you use a variable voltage buck converter, make sure to set it properly to deliver 5v from 12v input before connecting it to the ESP. Otherwise you might fry the board. 
+
 In case you are using a max485 board without automatic flow control, one additional pin needs to be connected to the two center pins on the max board. This needs to be configured in esphome as well. 
 
 ![](images/2%20esphome%20device.jpg)
