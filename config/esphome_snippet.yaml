@@ -215,6 +215,16 @@ sensor:
     address: 0x0
     value_type: U_WORD
     unit_of_measurement: "%"
+
+  - platform: modbus_controller
+    modbus_controller_id: fairland
+    name: “Voltage of PFC”
+    id: voltage_of_pfc
+    register_type: read
+    address: 0x2
+    value_type: U_WORD
+    unit_of_measurement: “V”
+
     
   - platform: modbus_controller
     modbus_controller_id: fairland
@@ -280,11 +290,11 @@ sensor:
     id: pwp_compressor_power
     unit_of_measurement: "W"
     lambda: |-
-          if (id(pwp_compressor_current).state) {
-            return id(pwp_compressor_current).state * 230;
-          } else {
-            return 0.0;
-          }
+      if (id(pwp_compressor_current).state) {
+      return id(pwp_compressor_current).state * id(voltage_of_pfc).state;
+      } else {
+      return 0.0;
+      }    
     update_interval: 1s
 
 ###################################################
