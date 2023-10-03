@@ -285,6 +285,8 @@ sensor:
     value_type: U_WORD
     unit_of_measurement: "Hz"
 
+  # Thanks to oseldusan1 in homeassistant community for the fix to 
+  # use PFC Voltage for power consumption calculation. 
   - platform: template
     name: "PWP Compressor Power"
     id: pwp_compressor_power
